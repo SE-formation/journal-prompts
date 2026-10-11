@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Journal de prompts</title>
+<meta name="description" content="Saisir et dater ses prompts IA pour l'annexe du PPI ou du PPC (MSDI, IFC).">
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Prompts">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout : une colonne mobile, barre d'en-tête noire façon guide IFC, onglets en bas */
+:root{
+  --bg:#f4f4f2; --surface:#ffffff; --fg:#151515; --muted:#5f5f5a; --line:#dcdcd6;
+  --brand:#e2001a; --brand-fg:#ffffff; --bar:#111111; --bar-fg:#f4f4f2;
+  --warn:#f5b800; --ok:#1d7a46; --err:#b3261e;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#121212; --surface:#1c1c1b; --fg:#ededea; --muted:#a3a39c; --line:#33332f;
+  --brand:#ff3b4e; --brand-fg:#111111; --bar:#000000; --bar-fg:#ededea;
+  --warn:#ffcc33; --ok:#4cc583; --err:#ff8a80; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 var(--f-body);-webkit-tap-highlight-color:transparent}
+header{position:sticky;top:0;z-index:5;background:var(--bar);color:var(--bar-fg);
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;display:flex;align-items:center;gap:10px}
+header .mark{width:12px;height:12px;background:var(--brand);flex:none}
+header h1{font:800 1.05rem/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;margin:0;flex:1}
+header .pill{font:600 .75rem/1 var(--f-display);letter-spacing:.08em;border:1px solid currentColor;padding:5px 8px;border-radius:2px}
+#net{font-size:.75rem;opacity:.75}
+main{max-width:640px;margin:0 auto;padding:16px 16px calc(96px + env(safe-area-inset-bottom,0px))}
+section[hidden]{display:none!important}
+h2{font:800 1.5rem/1.1 var(--f-display);margin:4px 0 4px;text-wrap:balance}
+.lede{color:var(--muted);margin:0 0 16px}
+.form{display:grid;gap:14px}
+label{display:grid;gap:6px;font-weight:600;font-size:.9rem}
+label small{font-weight:400;color:var(--muted)}
+.eyebrow{font:700 .72rem/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--brand)}
+select,input,textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);
+  border-radius:3px;padding:12px;width:100%;min-height:48px}
+textarea{min-height:170px;resize:vertical;font-family:var(--f-mono);font-size:.88rem;line-height:1.5}
+select:focus,input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.row{grid-template-columns:1fr}}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--fg);border-radius:3px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--fg);font:800 1rem/1 var(--f-display);letter-spacing:.08em;padding:13px}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.prompt-head{display:flex;justify-content:space-between;align-items:end;gap:8px}
+.counter{font:400 .75rem var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.btn{border:0;border-radius:3px;font:700 1rem/1 var(--f-display);letter-spacing:.04em;padding:16px;cursor:pointer;min-height:52px}
+.btn-primary{background:var(--brand);color:var(--brand-fg);width:100%}
+.btn-primary:disabled{opacity:.5}
+.btn-ghost{background:transparent;color:var(--fg);border:1px solid var(--line);padding:9px 12px;min-height:40px;font-size:.85rem}
+.notice{border-left:4px solid var(--warn);background:var(--surface);padding:12px 14px;font-size:.92rem}
+.notice.ok{border-color:var(--ok)} .notice.err{border-color:var(--err)}
+.queue{display:flex;justify-content:space-between;align-items:center;gap:10px}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(3,1fr);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{border:0;background:none;color:var(--muted);font:700 .8rem/1 var(--f-display);letter-spacing:.06em;
+  text-transform:uppercase;padding:16px 4px;border-top:3px solid transparent}
+nav button[aria-current="page"]{color:var(--fg);border-top-color:var(--brand)}
+.list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.item .meta{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.item .txt{font:400 .82rem/1.45 var(--f-mono);white-space:pre-wrap;overflow-wrap:anywhere;max-height:7.5em;overflow:hidden}
+.tag{font:700 .68rem/1 var(--f-display);letter-spacing:.08em;text-transform:uppercase;padding:4px 6px;border-radius:2px;border:1px solid var(--line)}
+.tag.sent{color:var(--ok);border-color:currentColor} .tag.wait{color:var(--fg);background:var(--warn);border-color:var(--warn)}
+.item .acts{display:flex;gap:8px;flex-wrap:wrap}
+.empty{color:var(--muted);text-align:center;padding:32px 8px}
+.help{font-size:.9rem;color:var(--muted)} .help code{font-family:var(--f-mono);font-size:.82rem;overflow-wrap:anywhere}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:9;max-width:600px;margin:0 auto;
+  background:var(--fg);color:var(--bg);padding:14px 16px;border-radius:3px;font-weight:600;
+  transform:translateY(20px);opacity:0;transition:.2s;pointer-events:none}
+#toast.show{transform:none;opacity:1}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <span class="mark" aria-hidden="true"></span>
+  <h1>Journal de prompts</h1>
+  <span id="net"></span>
+  <span class="pill" id="pillEpreuve">PPI</span>
+</header>
+
+<main>
+  <!-- ÉCRAN 1 : SAISIE -->
+  <section id="view-saisir">
+    <div id="setupNotice" class="notice" hidden>
+      Avant le premier envoi, collez votre adresse d'envoi Make dans <b>Réglages</b>.
+    </div>
+    <div id="queueNotice" class="notice queue" hidden>
+      <span id="queueText"></span>
+      <button class="btn btn-ghost" id="btnRetry" type="button">Renvoyer</button>
+    </div>
+
+    <form id="form" class="form" novalidate>
+      <div>
+        <span class="eyebrow">Épreuve</span>
+        <div class="seg" role="group" aria-label="Épreuve" style="margin-top:6px">
+          <button type="button" data-ep="PPI" aria-pressed="true">PPI</button>
+          <button type="button" data-ep="PPC" aria-pressed="false">PPC</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="outil">Outil IA
+          <select id="outil" required></select>
+        </label>
+        <label for="partie">Partie du dossier
+          <select id="partie" required></select>
+        </label>
+      </div>
+
+      <label for="etape">Étape de travail
+        <select id="etape" required></select>
+      </label>
+
+      <label for="objectif">Objectif du prompt <small>en une phrase : ce que vous attendiez de l'IA</small>
+        <input id="objectif" type="text" maxlength="300" placeholder="Ex. Reformuler ma problématique en 3 versions" autocomplete="off">
+      </label>
+
+      <div style="display:grid;gap:6px">
+        <div class="prompt-head">
+          <label for="prompt" style="display:block">Prompt</label>
+          <span class="counter" id="counter">0 car.</span>
+        </div>
+        <textarea id="prompt" required placeholder="Collez ici le prompt tel que vous l'avez envoyé à l'IA."></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" type="button" id="btnPaste">Coller</button>
+          <button class="btn btn-ghost" type="button" id="btnClear">Effacer</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btnSend" type="submit">Enregistrer dans mon journal</button>
+    </form>
+  </section>
+
+  <!-- ÉCRAN 2 : HISTORIQUE -->
+  <section id="view-historique" hidden>
+    <h2>Mes derniers prompts</h2>
+    <p class="lede">Les 100 derniers envois, gardés sur ce téléphone. Le journal complet est dans votre Google Sheet.</p>
+    <ul class="list" id="list"></ul>
+  </section>
+
+  <!-- ÉCRAN 3 : RÉGLAGES -->
+  <section id="view-reglages" hidden>
+    <h2>Réglages</h2>
+    <p class="lede">Ces réglages restent sur ce téléphone. Rien n'est envoyé ailleurs que vers votre propre scénario Make.</p>
+    <div class="form">
+      <label for="hook">Adresse d'envoi (webhook Make)
+        <input id="hook" type="url" inputmode="url" placeholder="https://hook.eu1.make.com/…" autocomplete="off" spellcheck="false">
+        <small>La même adresse que dans votre favori ou votre raccourci téléphone.</small>
+      </label>
+      <label for="defEp">Épreuve par défaut
+        <select id="defEp"><option>PPI</option><option>PPC</option></select>
+      </label>
+      <button class="btn btn-primary" type="button" id="btnSave">Enregistrer les réglages</button>
+      <div class="help">
+        <p><b>Astuce formateur :</b> un lien de la forme <code id="exLink">…/?hook=ADRESSE</code> pré-remplit l'adresse d'envoi à la première ouverture.</p>
+        <p><b>Android :</b> une fois l'appli installée, sélectionnez un texte dans ChatGPT, Claude ou Gemini › <b>Partager</b> › <b>Prompts</b>. Le prompt arrive tout prêt dans le formulaire.</p>
+        <p><b>iPhone :</b> copiez le prompt, ouvrez l'appli, touchez <b>Coller</b>.</p>
+      </div>
+      <button class="btn btn-ghost" type="button" id="btnWipe">Vider l'historique local</button>
+      <p class="help" id="version"></p>
+    </div>
+  </section>
+</main>
+
+<nav aria-label="Navigation">
+  <button type="button" data-view="saisir" aria-current="page">Saisir</button>
+  <button type="button" data-view="historique">Historique</button>
+  <button type="button" data-view="reglages">Réglages</button>
+</nav>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>
