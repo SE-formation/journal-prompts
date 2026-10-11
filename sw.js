@@ -1,6 +1,6 @@
 /* Service worker : met l'appli en cache pour qu'elle s'ouvre même sans réseau.
    Les envois vers Make ne sont jamais mis en cache (ils passent directement). */
-const CACHE = "journal-prompts-v1.0.0";
+const CACHE = "journal-prompts-v1.1.0";
 const SHELL = ["./", "index.html", "app.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 

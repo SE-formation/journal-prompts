@@ -2,7 +2,7 @@
  * Notions abordées : DOM, événements, stockage local, requête HTTP POST (fetch),
  * file d'attente hors ligne, service worker, Web Share Target.
  */
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 
 // ---------- 1. Les listes (identiques à l'onglet « Listes » du Google Sheet) ----------
 const LISTES = {
@@ -36,7 +36,9 @@ const state = {
   hist: store.get(KEYS.hist, [])            // historique local
 };
 
-// ---------- 3. Remplir les listes déroulantes ----------
+// ---------- 3. Remplir la liste des étapes et les pastilles ----------
+// Libellés courts affichés sur les pastilles « Partie » ; la valeur envoyée reste le nom complet.
+const COURTS = { "Introduction": "Intro", "Partie I": "I", "Partie II": "II", "Partie III": "III", "Conclusion": "Concl." };
 function fill(sel, values, selected) {
   sel.innerHTML = "";
   for (const v of values) {
@@ -46,13 +48,28 @@ function fill(sel, values, selected) {
     sel.append(o);
   }
 }
+// Une pastille = un bouton ; la valeur choisie est rangée dans un champ caché (#outil, #partie).
+function chips(box, input, values, selected, court = {}) {
+  box.innerHTML = "";
+  input.value = values.includes(selected) ? selected : values[0];
+  for (const v of values) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = court[v] || v;
+    if (court[v]) b.setAttribute("aria-label", v);
+    b.setAttribute("aria-pressed", String(v === input.value));
+    b.addEventListener("click", () => {
+      input.value = v;
+      box.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c === b)));
+    });
+    box.append(b);
+  }
+}
 function renderEpreuve() {
   document.querySelectorAll("[data-ep]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ep === state.ep)));
-  $("#pillEpreuve").textContent = state.ep;
   fill($("#etape"), LISTES.etapes[state.ep], state.last["etape_" + state.ep]);
 }
-fill($("#outil"), LISTES.outils, state.last.outil);
-fill($("#partie"), LISTES.parties, state.last.partie);
+chips($("#outilChips"), $("#outil"), LISTES.outils, state.last.outil);
+chips($("#partieChips"), $("#partie"), LISTES.parties, state.last.partie, COURTS);
 renderEpreuve();
 
 document.querySelectorAll("[data-ep]").forEach(b => b.addEventListener("click", () => {
@@ -65,6 +82,7 @@ function show(view) {
   document.querySelectorAll("nav button").forEach(b => {
     if (b.dataset.view === view) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
+  $("#title").textContent = { saisir: "Mes prompts", historique: "Historique", reglages: "Réglages" }[view];
   if (view === "historique") renderHist();
   window.scrollTo(0, 0);
 }
@@ -178,7 +196,7 @@ function renderQueue() {
 $("#btnRetry").addEventListener("click", flushQueue);
 window.addEventListener("online", () => { renderNet(); flushQueue(); });
 window.addEventListener("offline", renderNet);
-function renderNet() { $("#net").textContent = navigator.onLine ? "" : "hors ligne"; }
+function renderNet() { $("#net").hidden = navigator.onLine; }
 
 // ---------- 9. Historique ----------
 function fmt(iso) {
@@ -186,15 +204,25 @@ function fmt(iso) {
 }
 function renderHist() {
   const ul = $("#list"); ul.innerHTML = "";
-  if (!state.hist.length) { ul.innerHTML = '<li class="empty">Aucun prompt pour l\'instant. Le premier envoi apparaîtra ici.</li>'; return; }
-  for (const h of state.hist) {
-    const li = document.createElement("li"); li.className = "item";
-    li.innerHTML = `<div class="meta"><span class="tag ${h.status}">${h.status === "sent" ? "Envoyé" : "En attente"}</span>
-      <span>${fmt(h.date)}</span><span>${h.epreuve} · ${h.outil}</span><span>${h.partie} · ${h.etape}</span></div>
-      ${h.objectif ? `<div><b></b></div>` : ""}<div class="txt"></div>
-      <div class="acts"><button class="btn btn-ghost" type="button" data-act="copy">Copier</button>
-      <button class="btn btn-ghost" type="button" data-act="reuse">Réutiliser</button></div>`;
-    if (h.objectif) li.querySelector("b").textContent = h.objectif;   // textContent : pas d'injection HTML
+  const q = $("#search").value.trim().toLowerCase();
+  const rows = state.hist.filter(h => !q || [h.prompt, h.objectif, h.etape, h.outil, h.partie].join(" ").toLowerCase().includes(q));
+  $("#histCount").textContent = q
+    ? `${rows.length} résultat${rows.length > 1 ? "s" : ""}`
+    : `${state.hist.length} prompt${state.hist.length > 1 ? "s" : ""} sur ce téléphone`;
+  if (!rows.length) {
+    ul.innerHTML = q ? '<li class="empty">Aucun prompt ne contient ce mot.</li>'
+                     : '<li class="empty">Aucun prompt pour l\'instant. Le premier envoi apparaîtra ici.</li>';
+    return;
+  }
+  for (const h of rows) {
+    const li = document.createElement("li"); li.className = "item" + (h.status === "wait" ? " wait" : "");
+    const etoiles = h.note ? `<span aria-label="Note ${h.note} sur 5" style="margin-left:auto;color:var(--orange);font-weight:600">${"★".repeat(h.note)}${"☆".repeat(5 - h.note)}</span>` : "";
+    li.innerHTML = `<div class="meta"><span class="badge ${h.status}">${h.status === "sent" ? "Envoyé" : "En attente"}</span>
+      <span>${fmt(h.date)} · ${h.outil} · ${COURTS[h.partie] || h.partie}</span>${etoiles}</div>
+      ${h.objectif ? '<div class="obj"></div>' : ""}<p class="txt"></p>
+      <div class="acts"><button class="soft-btn" type="button" data-act="copy">Copier</button>
+      <button class="soft-btn" type="button" data-act="reuse">Réutiliser</button></div>`;
+    if (h.objectif) li.querySelector(".obj").textContent = h.objectif;   // textContent : pas d'injection HTML
     li.querySelector(".txt").textContent = h.prompt;
     li.querySelector('[data-act="copy"]').addEventListener("click", async () => {
       try { await navigator.clipboard.writeText(h.prompt); toast("Prompt copié"); } catch { toast("Copie impossible"); }
@@ -206,6 +234,7 @@ function renderHist() {
     ul.append(li);
   }
 }
+$("#search").addEventListener("input", renderHist);
 
 // ---------- 10. Réglages ----------
 $("#hook").value = state.hook;
