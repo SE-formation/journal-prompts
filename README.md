@@ -1,4 +1,4 @@
-# Journal de prompts PPI / PPC — application mobile (PWA)
+# Journal de prompts PPI / PPC — application mobile (PWA) - Stéphane
 
 Une appli installable sur l'écran d'accueil du téléphone, qui envoie chaque prompt daté vers le **même scénario Make** et le **même Google Sheet** que le favori navigateur et les raccourcis iPhone / Android. Rien à changer côté Make : elle envoie les mêmes champs (`epreuve`, `outil`, `partie`, `etape`, `objectif`, `prompt`).
 
