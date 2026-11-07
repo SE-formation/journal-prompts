@@ -2,11 +2,12 @@
  * Notions abordées : DOM, événements, stockage local, requête HTTP POST (fetch),
  * file d'attente hors ligne, service worker, Web Share Target.
  */
-const VERSION = "1.1.0";
+const VERSION = "1.1.1";
 
 // ---------- 1. Les listes (identiques à l'onglet « Listes » du Google Sheet) ----------
+
 const LISTES = {
-  outils: ["Claude", "ChatGPT", "Gemini", "Mistral (Le Chat)", "NotebookLM", "Copilot", "Midjourney", "Autre"],
+  outils: ["Claude", "ChatGPT", "Gemini", "Mistral (Le Chat)", "NotebookLM", "Copilot", "Midjourney", "Perplexity", "Canva IA", "Autre"],
   parties: ["Introduction", "Partie I", "Partie II", "Partie III", "Conclusion", "Glossaire", "Annexes", "Mise en forme"],
   etapes: {
     PPI: ["Cerner le sujet", "Problématiser", "Contextualiser (interne, PESTEL)", "Veille prospective, facteurs de rupture",
